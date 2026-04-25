@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>🎵 YouTube Music Player - Premium Style</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #121212 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 16px;
+        }
+
+        /* Login Screen */
+        .login-container {
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 32px 24px;
+            border-radius: 28px;
+            width: 100%;
+            max-width: 380px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(29, 185, 84, 0.2);
+        }
+
+        .login-container h2 {
+            margin-bottom: 24px;
+            color: #1db954;
+            font-size: 28px;
+        }
+
+        .login-container input {
+            width: 100%;
+            padding: 14px 18px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 40px;
+            background: #2a2a2a;
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .login-container input:focus {
+            outline: none;
+            background: #333;
+            box-shadow: 0 0 0 2px #1db954;
+        }
+
+        .login-container button {
+            width: 100%;
+            padding: 14px;
+            background: #1db954;
+            border: none;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+            margin-top: 16px;
+        }
+
+        .login-container button:hover {
+            background: #1ed760;
+            transform: scale(1.02);
+        }
+
+        /* Main App */
+        .app {
+            width: 100%;
+            max-width: 1400px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            border-radius: 28px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #1db954, #1ed760);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            border: none;
+            color: white;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .main-content {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        /* Player Section */
+        .player-section {
+            flex: 1.2;
+            min-width: 280px;
+        }
+
+        .now-playing {
+            background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .now-playing h3 {
+            color: #1db954;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+
+        .song-title {
+            font-size: 18px;
+            margin: 12px 0;
+            font-weight: 500;
+            word-break: break-word;
+        }
+
+        .youtube-player {
+            margin: 20px 0;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+        }
+
+        .youtube-player iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .controls button {
+            background: #1db954;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            min-width: 120px;
+        }
+
+        .controls button:hover {
+            background: #1ed760;
+            transform: scale(1.05);
+        }
+
+        /* Queue Section */
+        .queue-section {
+            flex: 2;
+            min-width: 300px;
+        }
+
+        .add-song {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .add-song input {
+            flex: 1;
+            padding: 14px 18px;
+            border-radius: 40px;
+            border: none;
+            background: #2a2a2a;
+            color: white;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .add-song input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #1db954;
+        }
+
+        .add-song button {
+            background: #1db954;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: all 0.2s;
+        }
+
+        .add-song button:hover {
+            background: #1ed760;
+            transform: scale(1.02);
+        }
+
+        .queue-list {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 16px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .queue-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .queue-list::-webkit-scrollbar-track {
+            background: #2a2a2a;
+            border-radius: 10px;
+        }
+
+        .queue-list::-webkit-scrollbar-thumb {
+            background: #1db954;
+            border-radius: 10px;
+        }
+
+        .queue-item {
+            background: rgba(42, 42, 42, 0.9);
+            margin: 10px 0;
+            padding: 14px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+            flex-wrap: wrap;
+        }
+
+        .queue-item:hover {
+            background: #3a3a3a;
+            transform: translateX(4px);
+        }
+
+        .queue-number {
+            font-weight: bold;
+            font-size: 14px;
+            color: #1db954;
+            min-width: 36px;
+            text-align: center;
+        }
+
+        .queue-info {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .queue-title {
+            font-weight: bold;
+            font-size: 14px;
+            word-break: break-word;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .queue-url {
+            font-size: 10px;
+            color: #aaa;
+            word-break: break-all;
+        }
+
+        .queue-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .queue-actions button {
+            background: #444;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 40px;
+            cursor: pointer;
+            color: white;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .queue-actions button:hover {
+            transform: scale(1.05);
+        }
+
+        .queue-actions button:active {
+            transform: scale(0.98);
+        }
+
+        .move-up {
+            background: #1db954 !important;
+        }
+
+        .delete {
+            background: #d32f2f !important;
+        }
+
+        .move-to-position {
+            background: #2196f3 !important;
+        }
+
+        .playing-indicator {
+            background: #1db954;
+            color: black;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 10px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        /* Empty state */
+        .empty-queue {
+            text-align: center;
+            padding: 40px 20px;
+            color: #aaa;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+
+            .app {
+                padding: 16px;
+            }
+
+            .main-content {
+                flex-direction: column;
+            }
+
+            .player-section, .queue-section {
+                min-width: auto;
+            }
+
+            .now-playing {
+                padding: 16px;
+            }
+
+            .song-title {
+                font-size: 16px;
+            }
+
+            .controls button {
+                padding: 10px 24px;
+                font-size: 14px;
+                min-width: 100px;
+            }
+
+            .queue-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .queue-number {
+                align-self: flex-start;
+            }
+
+            .queue-actions {
+                align-self: flex-end;
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .add-song {
+                flex-direction: column;
+            }
+
+            .add-song button {
+                width: 100%;
+            }
+
+            .logo {
+                font-size: 20px;
+            }
+
+            .queue-title {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 24px 20px;
+                margin: 16px;
+            }
+
+            .login-container h2 {
+                font-size: 24px;
+            }
+
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .queue-actions button {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+
+            .playing-indicator {
+                font-size: 9px;
+                padding: 2px 8px;
+            }
+        }
+
+        /* Loading animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="login-container">
+    <h2>🎵 Music Player</h2>
+    <input type="text" id="username" placeholder="Username" value="admin">
+    <input type="password" id="password" placeholder="Password" value="admin123">
+    <button onclick="login()">Login →</button>
+</div>
+
+<!-- MAIN APP (Hidden by default) -->
+<div id="mainApp" class="app" style="display: none;">
+    <div class="header">
+        <div class="logo">
+            🎧 YouTube Music Player
+        </div>
+        <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+    </div>
+
+    <div class="main-content">
+        <!-- Player -->
+        <div class="player-section">
+            <div class="now-playing">
+                <h3>▶️ Now Playing</h3>
+                <div class="song-title" id="nowPlayingTitle">-</div>
+                <div id="youtubePlayer" class="youtube-player"></div>
+                <div class="controls">
+                    <button id="playPauseBtn">⏸ Pause</button>
+                    <button id="nextBtn">⏭ Next</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Queue -->
+        <div class="queue-section">
+            <div class="add-song">
+                <input type="text" id="youtubeLink" placeholder="🔗 Masukkan link YouTube... (contoh: https://youtu.be/...)" autocomplete="off">
+                <button onclick="addToQueue()">+ Tambah ke Antrian</button>
+            </div>
+            <div class="queue-list" id="queueList">
+                <div class="empty-queue">🎵 Belum ada lagu dalam antrian</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ======================= DATA =======================
+    let queue = [];
+    let currentIndex = 0;
+    let player = null;
+    let isPlaying = false;
+
+    function getYouTubeId(url) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    function loadVideo(videoId) {
+        const container = document.getElementById('youtubePlayer');
+        container.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen id="youtubeIframe"></iframe>`;
+        
+        setTimeout(() => {
+            const iframe = document.getElementById('youtubeIframe');
+            if (iframe) {
+                player = new YT.Player(iframe, {
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange
+                    }
+                });
+            }
+        }, 500);
+    }
+
+    function onPlayerReady(event) {
+        event.target.playVideo();
+        isPlaying = true;
+        document.getElementById('playPauseBtn').innerHTML = '⏸ Pause';
+    }
+
+    function onPlayerStateChange(event) {
+        if (event.data == YT.PlayerState.ENDED) {
+            nextSong();
+        }
+    }
+
+    function playSong(index) {
+        if (index >= 0 && index < queue.length) {
+            currentIndex = index;
+            const song = queue[currentIndex];
+            document.getElementById('nowPlayingTitle').innerText = song.title || "Memuat judul...";
+            
+            const videoId = getYouTubeId(song.url);
+            if (videoId) {
+                if (player && player.loadVideoById) {
+                    player.loadVideoById(videoId);
+                    player.playVideo();
+                } else {
+                    loadVideo(videoId);
+                }
+                isPlaying = true;
+                document.getElementById('playPauseBtn').innerHTML = '⏸ Pause';
+            } else {
+                alert("Link YouTube tidak valid!");
+            }
+            renderQueue();
+        }
+    }
+
+    function nextSong() {
+        if (queue.length > 0 && currentIndex + 1 < queue.length) {
+            playSong(currentIndex + 1);
+        } else if (queue.length > 0 && currentIndex + 1 >= queue.length) {
+            alert("📋 Sudah di akhir antrian.");
+        } else {
+            alert("🎵 Antrian kosong. Tambahkan lagu terlebih dahulu!");
+        }
+    }
+
+    function togglePlayPause() {
+        if (player) {
+            if (isPlaying) {
+                player.pauseVideo();
+                document.getElementById('playPauseBtn').innerHTML = '▶️ Play';
+                isPlaying = false;
+            } else {
+                player.playVideo();
+                document.getElementById('playPauseBtn').innerHTML = '⏸ Pause';
+                isPlaying = true;
+            }
+        }
+    }
+
+    async function fetchVideoTitle(url) {
+        const videoId = getYouTubeId(url);
+        if (!videoId) return "Unknown Title";
+        try {
+            const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+            const data = await res.json();
+            return data.title || `Video ${videoId}`;
+        } catch (e) {
+            return `Video ${videoId}`;
+        }
+    }
+
+    async function addToQueue() {
+        const linkInput = document.getElementById('youtubeLink');
+        const url = linkInput.value.trim();
+        if (!url) {
+            alert("⚠️ Masukkan link YouTube!");
+            return;
+        }
+        if (!getYouTubeId(url)) {
+            alert("❌ Link YouTube tidak valid!");
+            return;
+        }
+        
+        const title = await fetchVideoTitle(url);
+        queue.push({ url: url, title: title });
+        renderQueue();
+        
+        if (queue.length === 1) {
+            playSong(0);
+        }
+        
+        linkInput.value = '';
+    }
+
+    function removeFromQueue(index) {
+        if (index < 0 || index >= queue.length) return;
+        
+        const wasPlayingCurrent = (index === currentIndex);
+        queue.splice(index, 1);
+        
+        if (queue.length === 0) {
+            if (player) player.stopVideo();
+            document.getElementById('nowPlayingTitle').innerText = "-";
+            currentIndex = 0;
+        } else {
+            if (wasPlayingCurrent) {
+                if (currentIndex >= queue.length) currentIndex = queue.length - 1;
+                playSong(currentIndex);
+            } else if (index < currentIndex) {
+                currentIndex--;
+            }
+        }
+        renderQueue();
+    }
+
+    function moveUp(index) {
+        if (index <= 0) return;
+        [queue[index - 1], queue[index]] = [queue[index], queue[index - 1]];
+        if (currentIndex === index) {
+            currentIndex = index - 1;
+        } else if (currentIndex === index - 1) {
+            currentIndex = index;
+        }
+        renderQueue();
+    }
+
+    function moveToPosition(index) {
+        const newPosInput = prompt(`📍 Pindahkan "${queue[index].title.substring(0, 40)}..." ke posisi berapa?\n(1 - ${queue.length})`, (index + 1).toString());
+        let newPos = parseInt(newPosInput) - 1;
+        if (isNaN(newPos) || newPos < 0 || newPos >= queue.length) {
+            alert("⚠️ Posisi tidak valid! Masukkan angka antara 1 - " + queue.length);
+            return;
+        }
+        if (newPos === index) return;
+        
+        const [movedSong] = queue.splice(index, 1);
+        queue.splice(newPos, 0, movedSong);
+        
+        if (currentIndex === index) {
+            currentIndex = newPos;
+        } else if (currentIndex > index && currentIndex <= newPos) {
+            currentIndex--;
+        } else if (currentIndex < index && currentIndex >= newPos) {
+            currentIndex++;
+        }
+        renderQueue();
+    }
+
+    function renderQueue() {
+        const container = document.getElementById('queueList');
+        if (!container) return;
+        
+        if (queue.length === 0) {
+            container.innerHTML = '<div class="empty-queue">🎵 Belum ada lagu dalam antrian<br>⬆️ Tambahkan lagu dari YouTube di atas ⬆️</div>';
+            return;
+        }
+        
+        container.innerHTML = '';
+        queue.forEach((song, idx) => {
+            const div = document.createElement('div');
+            div.className = 'queue-item';
+            const isNowPlaying = (idx === currentIndex);
+            const numberDisplay = (idx + 1).toString();
+            
+            div.innerHTML = `
+                <div class="queue-number">#${numberDisplay}</div>
+                <div class="queue-info">
+                    <div class="queue-title">
+                        ${song.title || 'Memuat...'}
+                        ${isNowPlaying ? '<span class="playing-indicator">▶️ PLAYING</span>' : ''}
+                    </div>
+                    <div class="queue-url">${song.url.substring(0, 60)}${song.url.length > 60 ? '...' : ''}</div>
+                </div>
+                <div class="queue-actions">
+                    <button class="move-up" onclick="moveUp(${idx})" ${idx === 0 ? 'disabled style="opacity:0.5"' : ''}>⬆️ Naik</button>
+                    <button class="move-to-position" onclick="moveToPosition(${idx})">🎯 Pindah</button>
+                    <button class="delete" onclick="removeFromQueue(${idx})">🗑 Hapus</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function login() {
+        const user = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        if (user === "admin" && pass === "admin123") {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            if (!window.YT) {
+                const tag = document.createElement('script');
+                tag.src = "https://www.youtube.com/iframe_api";
+                const firstScriptTag = document.getElementsByTagName('script')[0];
+                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            }
+        } else {
+            alert("❌ Login gagal!\nGunakan username: admin\nPassword: admin123");
+        }
+    }
+
+    function logout() {
+        queue = [];
+        currentIndex = 0;
+        if (player) player.stopVideo();
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('nowPlayingTitle').innerText = '-';
+        renderQueue();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        if (playPauseBtn) playPauseBtn.onclick = togglePlayPause;
+        if (nextBtn) nextBtn.onclick = nextSong;
+        
+        // Enter key di input YouTube
+        const inputLink = document.getElementById('youtubeLink');
+        if (inputLink) {
+            inputLink.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    addToQueue();
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>
