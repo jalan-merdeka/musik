@@ -3,19 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ALPHA TEAM MUSIC · Real-time ALPHA STUDIO</title>
-    <!-- Google Fonts & Font Awesome -->
+    <title>ALPHA TEAM MUSIC · Real-time Player</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- YouTube IFrame API -->
     <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background: linear-gradient(135deg, #0f0c1f 0%, #1a1535 50%, #0a0818 100%);
@@ -23,8 +17,6 @@
             padding: 24px;
             position: relative;
         }
-
-        /* Animated RGB Background Elements */
         .rgb-bg {
             position: fixed;
             top: 0;
@@ -48,48 +40,18 @@
             0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); opacity: 0.5; }
             100% { transform: translate(-50%, -50%) rotate(180deg) scale(1.2); opacity: 0.8; }
         }
-
-        /* Main Container */
-        .app-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Glassmorphism Card */
+        .app-container { max-width: 1400px; margin: 0 auto; position: relative; z-index: 1; }
         .glass-card {
             background: rgba(20, 18, 40, 0.7);
             backdrop-filter: blur(20px);
             border-radius: 2rem;
             border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3);
             transition: all 0.3s ease;
         }
-
-        /* Grid Layout */
-        .dashboard {
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 24px;
-        }
-
-        @media (max-width: 900px) {
-            .dashboard {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            body {
-                padding: 16px;
-            }
-        }
-
-        /* User Panel */
-        .user-panel {
-            padding: 28px;
-        }
-
-        /* Header */
+        .dashboard { display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+        @media (max-width: 900px) { .dashboard { grid-template-columns: 1fr; gap: 20px; } body { padding: 16px; } }
+        .user-panel { padding: 28px; }
         .header {
             display: flex;
             justify-content: space-between;
@@ -105,12 +67,6 @@
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            letter-spacing: -0.5px;
-        }
-        .logo p {
-            font-size: 0.75rem;
-            color: #a78bfa;
-            margin-top: 4px;
         }
         .badge {
             background: rgba(139, 92, 246, 0.2);
@@ -120,8 +76,6 @@
             color: #c4b5fd;
             border: 1px solid rgba(139, 92, 246, 0.4);
         }
-
-        /* Now Playing Section */
         .now-playing-card {
             background: linear-gradient(135deg, rgba(30, 27, 58, 0.8), rgba(20, 18, 45, 0.9));
             border-radius: 1.5rem;
@@ -129,121 +83,36 @@
             margin-bottom: 24px;
             border: 1px solid rgba(255,255,255,0.1);
         }
-        .now-playing-title {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #a78bfa;
-            margin-bottom: 12px;
-        }
-        .track-name {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: white;
-            margin: 8px 0;
-            line-height: 1.3;
-        }
-        .track-meta {
-            font-size: 0.8rem;
-            color: #94a3b8;
-            margin-bottom: 16px;
-        }
-        .player-wrapper {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            border-radius: 1rem;
-            overflow: hidden;
-            margin: 16px 0;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-        }
-        #youtube-player {
-            width: 100%;
-            height: 100%;
-        }
-        .player-controls {
-            display: flex;
-            justify-content: center;
-            gap: 24px;
-            margin: 20px 0 8px;
-        }
+        .now-playing-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #a78bfa; margin-bottom: 12px; }
+        .track-name { font-size: 1.4rem; font-weight: 700; color: white; margin: 8px 0; line-height: 1.3; }
+        .track-meta { font-size: 0.8rem; color: #94a3b8; margin-bottom: 16px; }
+        .player-wrapper { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 1rem; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+        #youtube-player { width: 100%; height: 100%; }
+        .player-controls { display: flex; justify-content: center; gap: 24px; margin: 20px 0 8px; }
         .ctrl-btn {
-            width: 52px;
-            height: 52px;
-            border-radius: 60px;
+            width: 52px; height: 52px; border-radius: 60px;
             background: rgba(139, 92, 246, 0.25);
             border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-            font-size: 1.4rem;
-            cursor: pointer;
+            color: white; font-size: 1.4rem; cursor: pointer;
             transition: all 0.2s;
-            backdrop-filter: blur(4px);
         }
-        .ctrl-btn:hover {
-            background: #7c3aed;
-            transform: scale(1.05);
-            border-color: #a78bfa;
-        }
-
-        /* Input Area */
-        .input-area {
-            background: rgba(0,0,0,0.3);
-            border-radius: 1.2rem;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .input-group {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
+        .ctrl-btn:hover { background: #7c3aed; transform: scale(1.05); }
+        .input-area { background: rgba(0,0,0,0.3); border-radius: 1.2rem; padding: 20px; margin: 20px 0; }
+        .input-group { display: flex; gap: 12px; flex-wrap: wrap; }
         .input-group input {
-            flex: 1;
-            padding: 14px 20px;
-            border-radius: 60px;
+            flex: 1; padding: 14px 20px; border-radius: 60px;
             background: rgba(15, 13, 35, 0.8);
-            border: 1px solid #334155;
-            color: white;
-            font-size: 0.9rem;
-            outline: none;
-            transition: all 0.2s;
+            border: 1px solid #334155; color: white; font-size: 0.9rem; outline: none;
         }
-        .input-group input:focus {
-            border-color: #8b5cf6;
-            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
-        }
+        .input-group input:focus { border-color: #8b5cf6; box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3); }
         .btn-primary {
             background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-            border: none;
-            padding: 0 28px;
-            border-radius: 60px;
-            font-weight: 600;
-            color: white;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 0.9rem;
+            border: none; padding: 0 28px; border-radius: 60px;
+            font-weight: 600; color: white; cursor: pointer; transition: 0.2s;
         }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
-        }
-
-        /* Queue List Styling */
-        .queue-section h3 {
-            color: white;
-            font-size: 1.2rem;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .queue-list {
-            max-height: 360px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4); }
+        .queue-section h3 { color: white; font-size: 1.2rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .queue-list { max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .queue-item {
             background: rgba(30, 27, 58, 0.6);
             backdrop-filter: blur(8px);
@@ -258,191 +127,81 @@
         .queue-item.active {
             background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(99, 102, 241, 0.2));
             border-left: 4px solid #fbbf24;
-            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
         }
-        .queue-info {
-            flex: 1;
-            min-width: 0;
-        }
-        .queue-title {
-            font-weight: 600;
-            color: #f1f5f9;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .queue-meta {
-            font-size: 0.7rem;
-            color: #94a3b8;
-            margin-top: 4px;
-        }
-        .blacklist-badge {
-            font-size: 0.65rem;
-            background: #ef444430;
-            padding: 2px 10px;
-            border-radius: 30px;
-            color: #fca5a5;
-            margin-left: 8px;
-        }
-
-        /* Admin Panel */
-        .admin-panel {
-            padding: 28px;
-            position: relative;
-        }
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .admin-login-area {
-            text-align: center;
-            padding: 32px 20px;
-        }
-        .admin-login-area input {
-            width: 100%;
-            padding: 14px;
-            border-radius: 60px;
-            background: #1e1b3a;
-            border: 1px solid #4c1d95;
-            color: white;
-            margin: 16px 0;
-        }
-        .admin-actions-group {
-            display: flex;
-            gap: 12px;
-            margin: 16px 0;
-        }
-        .admin-actions-group button {
-            flex: 1;
-        }
+        .queue-info { flex: 1; min-width: 0; }
+        .queue-title { font-weight: 600; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .queue-meta { font-size: 0.7rem; color: #94a3b8; margin-top: 4px; }
+        .blacklist-badge { font-size: 0.65rem; background: #ef444430; padding: 2px 10px; border-radius: 30px; color: #fca5a5; margin-left: 8px; }
+        .admin-panel { padding: 28px; position: relative; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+        .admin-login-area { text-align: center; padding: 32px 20px; }
+        .admin-login-area input { width: 100%; padding: 14px; border-radius: 60px; background: #1e1b3a; border: 1px solid #4c1d95; color: white; margin: 16px 0; }
+        .admin-actions-group { display: flex; gap: 12px; margin: 16px 0; }
         .icon-btn {
             background: rgba(255,255,255,0.08);
-            border: none;
-            width: 36px;
-            height: 36px;
-            border-radius: 40px;
-            color: #cbd5e1;
-            cursor: pointer;
-            transition: 0.15s;
+            border: none; width: 36px; height: 36px; border-radius: 40px;
+            color: #cbd5e1; cursor: pointer; transition: 0.15s;
         }
-        .icon-btn:hover {
-            background: #8b5cf6;
-            color: white;
+        .icon-btn:hover { background: #8b5cf6; color: white; }
+        .icon-btn.danger:hover { background: #ef4444; }
+        .btn-logout { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; padding: 6px 14px; border-radius: 40px; color: #fecaca; cursor: pointer; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #1e1b3a; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #8b5cf6; border-radius: 10px; }
+        hr { border-color: rgba(255,255,255,0.08); margin: 16px 0; }
+        .connection-status {
+            position: fixed; bottom: 20px; right: 20px; padding: 8px 16px;
+            border-radius: 20px; font-size: 0.75rem; z-index: 100;
         }
-        .icon-btn.danger:hover {
-            background: #ef4444;
-        }
-        .btn-logout {
-            background: rgba(239, 68, 68, 0.2);
-            border: 1px solid #ef4444;
-            padding: 6px 14px;
-            border-radius: 40px;
-            color: #fecaca;
-            cursor: pointer;
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 5px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1e1b3a;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #8b5cf6;
-            border-radius: 10px;
-        }
-
-        /* Animasi */
-        @keyframes glowPulse {
-            0%, 100% { text-shadow: 0 0 5px rgba(139,92,246,0.5);}
-            50% { text-shadow: 0 0 20px rgba(139,92,246,0.8);}
-        }
-        hr {
-            border-color: rgba(255,255,255,0.08);
-            margin: 16px 0;
-        }
-        
-        /* Loading indicator */
-        .loading {
-            color: #94a3b8;
-            text-align: center;
-            padding: 20px;
-        }
+        .status-connected { background: #10b981; color: white; }
+        .status-disconnected { background: #ef4444; color: white; }
+        .status-connecting { background: #f59e0b; color: white; }
     </style>
 </head>
 <body>
 <div class="rgb-bg"></div>
 <div class="app-container">
     <div class="dashboard">
-        <!-- USER PANEL -->
         <div class="glass-card user-panel">
             <div class="header">
                 <div class="logo">
                     <h1><i class="fas fa-headphones"></i> ALPHA TEAM STUDIO</h1>
                     <p>Real-time Speakers • Playlist 2.1</p>
                 </div>
-                <div class="badge">
-                    <i class="fas fa-waveform"></i> Live Streaming
-                </div>
+                <div class="badge"><i class="fas fa-waveform"></i> Live Streaming</div>
             </div>
-
-            <!-- Now Playing -->
             <div class="now-playing-card">
-                <div class="now-playing-title">
-                    <i class="fas fa-compact-disc"></i> NOW PLAYING
-                </div>
+                <div class="now-playing-title"><i class="fas fa-compact-disc"></i> NOW PLAYING</div>
                 <div class="track-name" id="currentTitle">✨ Menunggu lagu...</div>
                 <div class="track-meta" id="queueStats"></div>
-                <div class="player-wrapper">
-                    <div id="youtube-player"></div>
-                </div>
+                <div class="player-wrapper"><div id="youtube-player"></div></div>
                 <div class="player-controls">
                     <button class="ctrl-btn" id="playPauseBtn"><i class="fas fa-play"></i></button>
                     <button class="ctrl-btn" id="nextBtn"><i class="fas fa-forward-step"></i></button>
                 </div>
             </div>
-
-            <!-- Add Song Area -->
             <div class="input-area">
                 <div class="input-group">
-                    <input type="text" id="userYtLink" placeholder="Paste YouTube link... (contoh: https://youtu.be/...)" value="https://youtu.be/dQw4w9WgXcQ">
+                    <input type="text" id="userYtLink" placeholder="Paste YouTube link...">
                     <button class="btn-primary" id="userAddBtn"><i class="fas fa-plus-circle"></i> Tambah</button>
                 </div>
-                <p style="font-size: 0.7rem; color: #6b7280; margin-top: 12px;">
-                    <i class="fas fa-info-circle"></i> Masukkan link YouTube, lagu akan langsung ditambahkan ke antrean
-                </p>
+                <p style="font-size: 0.7rem; color: #6b7280; margin-top: 12px;"><i class="fas fa-info-circle"></i> Masukkan link YouTube, lagu akan langsung ditambahkan ke antrean</p>
             </div>
-
-            <!-- Queue -->
             <div class="queue-section">
                 <h3><i class="fas fa-list-ul"></i> Antrean Playlist</h3>
                 <div id="userQueueList" class="queue-list"></div>
             </div>
         </div>
-
-        <!-- ADMIN PANEL -->
         <div class="glass-card admin-panel" id="adminPanelContainer">
-            <div id="adminDynamicContent">
-                <!-- Akan diisi dengan login atau dashboard admin -->
-            </div>
+            <div id="adminDynamicContent"></div>
         </div>
     </div>
 </div>
+<div id="connectionStatus" class="connection-status status-connecting">⏳ Menghubungkan...</div>
 
 <script>
-    // ======================== GLOBAL STATE ========================
-    let playlist = [];           
-    let currentIndex = 0;
-    let player = null;
-    let isAdminLogged = false;
-    let isPlayerReady = false;
-
-    // Helper: Extract YouTube Video ID
+    let playlist = []; let currentIndex = 0; let player = null; let isAdminLogged = false; let isPlayerReady = false; let socket = null;
+    
     function extractVideoId(url) {
         if (!url) return null;
         const regex = /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
@@ -450,486 +209,144 @@
         return match ? match[1] : null;
     }
 
-    // Fetch title via oEmbed
-    async function fetchVideoTitle(videoId) {
-        try {
-            const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
-            const data = await res.json();
-            return data.title || `Video ${videoId}`;
-        } catch(e) {
-            return `YouTube Video`;
-        }
+    function updateConnectionStatus(status, message) {
+        const statusDiv = document.getElementById('connectionStatus');
+        if (statusDiv) { statusDiv.className = `connection-status status-${status}`; statusDiv.innerHTML = message; }
     }
 
-    // Save to localStorage dengan key yang konsisten
-    function saveToLocal() {
-        const data = {
-            playlist: playlist.map(({ id, title, videoId, isBlacklisted, addedBy, currentTime }) => ({ 
-                id, title, videoId, isBlacklisted, addedBy 
-            })),
-            currentIndex: currentIndex,
-            lastUpdated: Date.now()
-        };
-        localStorage.setItem('alpha_music_db', JSON.stringify(data));
-        console.log('Data saved:', data.playlist.length, 'songs, index:', currentIndex);
-    }
-
-    function loadFromLocal() {
-        const raw = localStorage.getItem('alpha_music_db');
-        console.log('Loading from localStorage:', raw ? 'found' : 'not found');
+    function initSocket() {
+        // Gunakan URL server yang sama dengan halaman (untuk deployment)
+        const serverUrl = window.location.origin;
+        console.log('Connecting to Socket.IO server at:', serverUrl);
+        updateConnectionStatus('connecting', '⏳ Menghubungkan ke server...');
         
-        if (raw) {
-            try {
-                const data = JSON.parse(raw);
-                if (data.playlist && Array.isArray(data.playlist) && data.playlist.length > 0) {
-                    playlist = data.playlist;
-                    currentIndex = data.currentIndex || 0;
-                    
-                    // Validasi index
-                    if (currentIndex >= playlist.length) {
-                        currentIndex = 0;
-                    }
-                    console.log('Data loaded:', playlist.length, 'songs, current index:', currentIndex);
-                    return true;
-                } else {
-                    console.log('Playlist kosong di localStorage');
-                }
-            } catch(e) {
-                console.error('Error parsing localStorage:', e);
-            }
-        }
+        socket = io(serverUrl, { transports: ['websocket', 'polling'], timeout: 10000 });
         
-        // Jika tidak ada data atau error, load default
-        resetDefaultSongs();
-        return false;
+        socket.on('connect', () => { console.log('Socket.IO connected!'); updateConnectionStatus('connected', '✅ Terhubung ke server'); });
+        socket.on('disconnect', () => { console.log('Socket.IO disconnected'); updateConnectionStatus('disconnected', '❌ Terputus dari server'); });
+        socket.on('connect_error', (error) => { console.error('Connection error:', error); updateConnectionStatus('disconnected', '⚠️ Server tidak berjalan!'); });
+        
+        socket.on('init', (data) => {
+            console.log('Received initial data');
+            if (data && data.playlist) { playlist = data.playlist; currentIndex = data.currentIndex || 0; renderAllQueues(); syncPlayerWithCurrent(); }
+        });
+        
+        socket.on('playlist-updated', (data) => {
+            console.log('Playlist updated - realtime sync!');
+            if (data && data.playlist) { playlist = data.playlist; currentIndex = data.currentIndex || 0; renderAllQueues(); syncPlayerWithCurrent(); }
+        });
+        
+        socket.on('admin-status-changed', (data) => { if (data && !data.isAdminLoggedIn && isAdminLogged) { isAdminLogged = false; buildAdminUI(); } });
+        socket.on('admin-login-success', () => { console.log('Admin login success'); isAdminLogged = true; buildAdminUI(); renderAdminQueue(); });
+        socket.on('admin-login-failed', () => { alert("Password salah! Gunakan: anakbandot"); });
     }
-
-    function resetDefaultSongs() {
-        console.log('Setting default songs');
-        playlist = [
-            {
-                id: Date.now() + 1,
-                title: "L'Arc~en~Ciel - HONEY (Live)",
-                videoId: "G7gI8WZriO0",
-                isBlacklisted: false,
-                addedBy: "system"
-            },
-            {
-                id: Date.now() + 2,
-                title: "李聖傑 Sam Lee - 痴心絕對 (Official Audio)",
-                videoId: "K_WOoQsf7sk",
-                isBlacklisted: false,
-                addedBy: "system"
-            }
-        ];
-        currentIndex = 0;
-        saveToLocal();
-    }
-
-    // Add Song
+    
     async function addSong(url, addedBy = "user") {
         const videoId = extractVideoId(url);
-        if (!videoId) {
-            alert("❌ Link YouTube tidak valid!");
-            return false;
-        }
-        
-        const existing = playlist.find(p => p.videoId === videoId);
-        if (existing && existing.isBlacklisted) {
-            alert("⛔ Lagu ini telah diblacklist oleh admin, tidak bisa ditambahkan.");
-            return false;
-        }
-        if (existing) {
-            alert("⚠️ Lagu sudah ada dalam antrean!");
-            return false;
-        }
-        
-        const title = await fetchVideoTitle(videoId);
-        const newSong = {
-            id: Date.now(),
-            title: title,
-            videoId: videoId,
-            isBlacklisted: false,
-            addedBy: addedBy
-        };
-        playlist.push(newSong);
-        saveToLocal();
-        renderAllQueues();
-        
-        // Jika ini adalah satu-satunya lagu atau player kosong, putar
-        if (playlist.length === 1 || (player && (!player.getVideoData || !player.getVideoData().video_id))) {
-            if (playlist.length === 1) currentIndex = 0;
-            syncPlayerWithCurrent();
-        }
-        return true;
+        if (!videoId) { alert("❌ Link YouTube tidak valid!"); return false; }
+        if (socket && socket.connected) { socket.emit('add-song', { url, addedBy }); return true; }
+        else { alert("⚠️ Tidak terhubung ke server."); return false; }
     }
-
-    function removeSong(songId) {
-        const idx = playlist.findIndex(s => s.id === songId);
-        if (idx === -1) return;
-        
-        const wasPlaying = (idx === currentIndex);
-        playlist.splice(idx, 1);
-        
-        if (playlist.length === 0) {
-            currentIndex = 0;
-            if (player) player.stopVideo();
-            document.getElementById("currentTitle").innerText = "🎵 Tidak ada lagu";
-        } else {
-            if (wasPlaying) {
-                if (currentIndex >= playlist.length) currentIndex = playlist.length - 1;
-                playSongAtIndex(currentIndex);
-            } else if (currentIndex > idx) {
-                currentIndex--;
-            }
-        }
-        saveToLocal();
-        renderAllQueues();
-    }
-
-    function toggleBlacklist(songId) {
-        const song = playlist.find(s => s.id === songId);
-        if (song) {
-            song.isBlacklisted = !song.isBlacklisted;
-            if (song.isBlacklisted && playlist[currentIndex] && playlist[currentIndex].id === song.id) {
-                nextSong();
-            }
-            saveToLocal();
-            renderAllQueues();
-        }
-    }
-
-    function moveSong(songId, direction) {
-        const idx = playlist.findIndex(s => s.id === songId);
-        if (idx === -1) return;
-        const newIdx = direction === 'up' ? idx - 1 : idx + 1;
-        if (newIdx < 0 || newIdx >= playlist.length) return;
-        
-        [playlist[idx], playlist[newIdx]] = [playlist[newIdx], playlist[idx]];
-        
-        if (currentIndex === idx) currentIndex = newIdx;
-        else if (currentIndex === newIdx) currentIndex = idx;
-        
-        saveToLocal();
-        renderAllQueues();
-    }
-
-    function nextSong() {
-        if (playlist.length === 0) return;
-        
-        let nextIdx = (currentIndex + 1) % playlist.length;
-        let attempts = 0;
-        
-        while (playlist[nextIdx] && playlist[nextIdx].isBlacklisted && attempts < playlist.length) {
-            nextIdx = (nextIdx + 1) % playlist.length;
-            attempts++;
-        }
-        
-        if (playlist[nextIdx] && !playlist[nextIdx].isBlacklisted) {
-            currentIndex = nextIdx;
-            playSongAtIndex(currentIndex);
-        } else {
-            if (player) player.stopVideo();
-            document.getElementById("currentTitle").innerText = "⛔ Semua lagu diblacklist";
-        }
-        saveToLocal();
-        renderAllQueues();
-    }
-
-    function playSongAtIndex(index) {
-        if (!playlist[index]) {
-            if (playlist.length > 0) {
-                currentIndex = 0;
-                index = 0;
-            } else {
-                return;
-            }
-        }
-        
-        if (playlist[index].isBlacklisted) {
-            nextSong();
-            return;
-        }
-        
-        const song = playlist[index];
-        if (player && player.loadVideoById && isPlayerReady) {
-            player.loadVideoById(song.videoId);
-            player.playVideo();
-        }
-        updateCurrentTitle(song.title);
-        renderAllQueues();
-    }
-
-    function updateCurrentTitle(title) {
-        const el = document.getElementById("currentTitle");
-        if (el) el.innerText = title || "Now playing...";
-    }
-
+    
+    function removeSong(id) { if (socket?.connected && isAdminLogged) socket.emit('admin-remove', id); }
+    function toggleBlacklist(id) { if (socket?.connected && isAdminLogged) socket.emit('admin-blacklist', id); }
+    function moveSong(id, dir) { if (socket?.connected && isAdminLogged) socket.emit('admin-move', { songId: id, direction: dir }); }
+    function nextSong() { if (socket?.connected && isAdminLogged) socket.emit('admin-next'); else if (!isAdminLogged) alert("Hanya admin yang bisa skip lagu!"); }
+    function playSongAtIndex(index) { if (socket?.connected && isAdminLogged) socket.emit('admin-play-now', index); }
+    
     function syncPlayerWithCurrent() {
-        if (playlist.length === 0) {
-            if (player) player.stopVideo();
-            return;
-        }
-        
+        if (playlist.length === 0) { if (player) player.stopVideo(); updateCurrentTitle("✨ Tidak ada lagu"); return; }
         if (currentIndex >= playlist.length) currentIndex = 0;
         const song = playlist[currentIndex];
-        
         if (song && !song.isBlacklisted && player && isPlayerReady) {
-            player.loadVideoById(song.videoId);
-            player.playVideo();
+            const currentVideoId = player.getVideoData ? player.getVideoData().video_id : null;
+            if (currentVideoId !== song.videoId) { player.loadVideoById(song.videoId); player.playVideo(); }
             updateCurrentTitle(song.title);
-        } else if (song && song.isBlacklisted) {
-            nextSong();
         }
         renderAllQueues();
     }
 
-    function renderAllQueues() {
-        renderUserQueue();
-        if (isAdminLogged) renderAdminQueue();
-        updateQueueStats();
-    }
-
+    function updateCurrentTitle(title) { const el = document.getElementById("currentTitle"); if (el) el.innerText = title || "Now playing..."; }
+    function renderAllQueues() { renderUserQueue(); if (isAdminLogged) renderAdminQueue(); updateQueueStats(); }
     function updateQueueStats() {
         const el = document.getElementById("queueStats");
-        if (el) {
-            const total = playlist.length;
-            const black = playlist.filter(s => s.isBlacklisted).length;
-            el.innerHTML = `<i class="fas fa-music"></i> ${total} lagu • <i class="fas fa-ban"></i> ${black} diblacklist`;
-        }
+        if (el) { const total = playlist.length; const black = playlist.filter(s => s.isBlacklisted).length;
+        el.innerHTML = `<i class="fas fa-music"></i> ${total} lagu • <i class="fas fa-ban"></i> ${black} diblacklist`; }
     }
-
     function renderUserQueue() {
         const container = document.getElementById("userQueueList");
         if (!container) return;
-        
-        if (playlist.length === 0) {
-            container.innerHTML = `<div style="color:#94a3b8; text-align:center; padding: 32px;">✨ Antrean kosong, tambahkan lagu!</div>`;
-            return;
-        }
-        
-        container.innerHTML = playlist.map((song, idx) => {
-            const isActive = (idx === currentIndex);
-            return `
-                <div class="queue-item ${isActive ? 'active' : ''}">
-                    <div class="queue-info">
-                        <div class="queue-title">${escapeHtml(song.title)} ${song.isBlacklisted ? '<span class="blacklist-badge">⛔ BLACKLIST</span>' : ''}</div>
-                        <div class="queue-meta"><i class="fas fa-user"></i> ${song.addedBy || 'user'} • #${idx+1}</div>
-                    </div>
-                    <div class="admin-actions" style="display: flex; gap: 4px;">
-                        ${!song.isBlacklisted ? `<button class="icon-btn" disabled style="opacity:0.4"><i class="fas fa-play-circle"></i></button>` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
+        if (playlist.length === 0) { container.innerHTML = `<div style="color:#94a3b8; text-align:center; padding: 32px;">✨ Antrean kosong, tambahkan lagu!</div>`; return; }
+        container.innerHTML = playlist.map((song, idx) => `<div class="queue-item ${idx === currentIndex ? 'active' : ''}"><div class="queue-info"><div class="queue-title">${escapeHtml(song.title)} ${song.isBlacklisted ? '<span class="blacklist-badge">⛔ BLACKLIST</span>' : ''}</div><div class="queue-meta"><i class="fas fa-user"></i> ${song.addedBy || 'user'} • #${idx+1}</div></div></div>`).join('');
     }
-
     function renderAdminQueue() {
         const container = document.getElementById("adminQueueList");
         if (!container) return;
-        
-        if (playlist.length === 0) {
-            container.innerHTML = `<div style="color:#aaa;padding:24px;text-align:center;">Kosong, tambah lagu</div>`;
-            return;
-        }
-        
-        container.innerHTML = playlist.map((song, idx) => {
-            const isActive = (idx === currentIndex);
-            return `
-                <div class="queue-item ${isActive ? 'active' : ''}">
-                    <div class="queue-info">
-                        <div class="queue-title">${escapeHtml(song.title)} ${song.isBlacklisted ? '<span class="blacklist-badge"><i class="fas fa-skull"></i> BLACKLIST</span>' : ''}</div>
-                        <div class="queue-meta">${song.videoId}</div>
-                    </div>
-                    <div class="admin-actions" style="display: flex; gap: 6px;">
-                        <button class="icon-btn" onclick="window.adminMove(${song.id}, 'up')" title="Naik"><i class="fas fa-arrow-up"></i></button>
-                        <button class="icon-btn" onclick="window.adminMove(${song.id}, 'down')" title="Turun"><i class="fas fa-arrow-down"></i></button>
-                        <button class="icon-btn danger" onclick="window.adminRemove(${song.id})" title="Hapus"><i class="fas fa-trash"></i></button>
-                        <button class="icon-btn ${song.isBlacklisted ? '' : 'danger'}" onclick="window.adminBlacklist(${song.id})" title="Blacklist"><i class="fas ${song.isBlacklisted ? 'fa-ban' : 'fa-skull-crossbones'}"></i></button>
-                        <button class="icon-btn" onclick="window.adminPlayNow(${idx})" title="Mainkan sekarang"><i class="fas fa-forward-step"></i></button>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        if (playlist.length === 0) { container.innerHTML = `<div style="color:#aaa;padding:24px;text-align:center;">Kosong, tambah lagu</div>`; return; }
+        container.innerHTML = playlist.map((song, idx) => `<div class="queue-item ${idx === currentIndex ? 'active' : ''}"><div class="queue-info"><div class="queue-title">${escapeHtml(song.title)} ${song.isBlacklisted ? '<span class="blacklist-badge"><i class="fas fa-skull"></i> BLACKLIST</span>' : ''}</div><div class="queue-meta">${song.videoId}</div></div><div class="admin-actions" style="display: flex; gap: 6px;"><button class="icon-btn" onclick="window.adminMove(${song.id}, 'up')" title="Naik"><i class="fas fa-arrow-up"></i></button><button class="icon-btn" onclick="window.adminMove(${song.id}, 'down')" title="Turun"><i class="fas fa-arrow-down"></i></button><button class="icon-btn danger" onclick="window.adminRemove(${song.id})" title="Hapus"><i class="fas fa-trash"></i></button><button class="icon-btn ${song.isBlacklisted ? '' : 'danger'}" onclick="window.adminBlacklist(${song.id})" title="Blacklist"><i class="fas ${song.isBlacklisted ? 'fa-ban' : 'fa-skull-crossbones'}"></i></button><button class="icon-btn" onclick="window.adminPlayNow(${idx})" title="Mainkan sekarang"><i class="fas fa-forward-step"></i></button></div></div>`).join('');
     }
 
-    // Admin exposed global functions
-    window.adminRemove = (id) => { if (isAdminLogged) removeSong(id); };
-    window.adminBlacklist = (id) => { if (isAdminLogged) toggleBlacklist(id); };
-    window.adminMove = (id, dir) => { if (isAdminLogged) moveSong(id, dir); };
-    window.adminPlayNow = (idx) => {
-        if (isAdminLogged && playlist[idx] && !playlist[idx].isBlacklisted) {
-            currentIndex = idx;
-            playSongAtIndex(currentIndex);
-            saveToLocal();
-            renderAllQueues();
-        } else if(playlist[idx] && playlist[idx].isBlacklisted) {
-            alert("Lagu diblacklist, tidak bisa diputar");
-        }
-    };
-    window.adminNextSong = () => { if (isAdminLogged) nextSong(); };
+    window.adminRemove = (id) => removeSong(id);
+    window.adminBlacklist = (id) => toggleBlacklist(id);
+    window.adminMove = (id, dir) => moveSong(id, dir);
+    window.adminPlayNow = (idx) => playSongAtIndex(idx);
+    window.adminNextSong = () => nextSong();
+    
     window.adminAddSongViaInput = async () => {
         if (!isAdminLogged) return;
-        const link = document.getElementById("adminYtLink").value;
-        if (link) {
-            await addSong(link, "admin");
-            document.getElementById("adminYtLink").value = '';
-        } else {
-            alert("Masukkan link YouTube");
-        }
+        const linkInput = document.getElementById("adminYtLink");
+        if (linkInput?.value) { await addSong(linkInput.value, "admin"); linkInput.value = ''; }
+        else alert("Masukkan link YouTube");
     };
+    
+    function adminLogin(password) { if (socket?.connected) socket.emit('admin-login', password); else alert("Tidak terhubung ke server"); }
 
     function buildAdminUI() {
         const container = document.getElementById("adminDynamicContent");
         if (!container) return;
-        
         if (!isAdminLogged) {
-            container.innerHTML = `
-                <div class="admin-login-area">
-                    <i class="fas fa-shield-alt" style="font-size: 3rem; color: #c084fc;"></i>
-                    <h3 style="color:white; margin: 16px 0;">Admin Access</h3>
-                    <p style="color:#94a3b8; margin-bottom: 16px;">Masukkan kode akses untuk kontrol penuh</p>
-                    <input type="password" id="adminPasswordInput" placeholder="Password" autocomplete="off">
-                    <button class="btn-primary" id="adminLoginBtn" style="width:100%;">Login →</button>
-                    <p style="font-size:0.7rem; margin-top: 16px; color:#6b7280;">demo: <strong>anakbandot</strong></p>
-                </div>
-            `;
+            container.innerHTML = `<div class="admin-login-area"><i class="fas fa-shield-alt" style="font-size: 3rem; color: #c084fc;"></i><h3 style="color:white; margin: 16px 0;">Admin Access</h3><p style="color:#94a3b8; margin-bottom: 16px;">Masukkan kode akses untuk kontrol penuh</p><input type="password" id="adminPasswordInput" placeholder="Password" autocomplete="off"><button class="btn-primary" id="adminLoginBtn" style="width:100%;">Login →</button><p style="font-size:0.7rem; margin-top: 16px; color:#6b7280;">Password: <strong>anakbandot</strong></p></div>`;
             const loginBtn = document.getElementById("adminLoginBtn");
-            if (loginBtn) {
-                loginBtn.onclick = () => {
-                    const pass = document.getElementById("adminPasswordInput").value;
-                    if (pass === "anakbandot") {
-                        isAdminLogged = true;
-                        buildAdminUI();
-                        renderAdminQueue();
-                    } else {
-                        alert("Password salah! Gunakan: anakbandot");
-                    }
-                };
-            }
+            if (loginBtn) loginBtn.onclick = () => { const passInput = document.getElementById("adminPasswordInput"); if (passInput) adminLogin(passInput.value); };
         } else {
-            container.innerHTML = `
-                <div class="admin-header">
-                    <div class="badge" style="background:#8b5cf630;"><i class="fas fa-crown"></i> Admin Mode</div>
-                    <button class="btn-logout" id="logoutAdminBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
-                </div>
-                <div class="input-group" style="margin: 16px 0; flex-wrap:wrap;">
-                    <input type="text" id="adminYtLink" placeholder="YouTube link (admin)" style="flex:1;">
-                    <button class="btn-primary" id="adminAddBtn"><i class="fas fa-plus"></i> Tambah</button>
-                </div>
-                <div class="admin-actions-group">
-                    <button class="ctrl-btn" id="adminNextControlBtn" style="width:100%; background:#7c3aed;"><i class="fas fa-step-forward"></i> Next Lagu (Realtime)</button>
-                </div>
-                <hr>
-                <h3 style="color:white; margin:16px 0 12px;"><i class="fas fa-sliders-h"></i> Manajemen Antrean</h3>
-                <div id="adminQueueList" class="queue-list" style="max-height: 340px;"></div>
-                <p style="font-size: 0.7rem; color:#94a3b8; margin-top: 12px;"><i class="fas fa-bolt"></i> Atur urutan, next, blacklist secara realtime</p>
-            `;
+            container.innerHTML = `<div class="admin-header"><div class="badge" style="background:#8b5cf630;"><i class="fas fa-crown"></i> Admin Mode</div><button class="btn-logout" id="logoutAdminBtn"><i class="fas fa-sign-out-alt"></i> Logout</button></div><div class="input-group" style="margin: 16px 0; flex-wrap:wrap;"><input type="text" id="adminYtLink" placeholder="YouTube link (admin)" style="flex:1;"><button class="btn-primary" id="adminAddBtn"><i class="fas fa-plus"></i> Tambah</button></div><div class="admin-actions-group"><button class="ctrl-btn" id="adminNextControlBtn" style="width:100%; background:#7c3aed;"><i class="fas fa-step-forward"></i> Next Lagu (Realtime)</button></div><hr><h3 style="color:white; margin:16px 0 12px;"><i class="fas fa-sliders-h"></i> Manajemen Antrean</h3><div id="adminQueueList" class="queue-list" style="max-height: 340px;"></div><p style="font-size: 0.7rem; color:#94a3b8; margin-top: 12px;"><i class="fas fa-bolt"></i> Atur urutan, next, blacklist secara realtime</p>`;
             document.getElementById("adminAddBtn")?.addEventListener("click", window.adminAddSongViaInput);
             document.getElementById("adminNextControlBtn")?.addEventListener("click", window.adminNextSong);
-            document.getElementById("logoutAdminBtn")?.addEventListener("click", () => {
-                isAdminLogged = false;
-                buildAdminUI();
-            });
+            document.getElementById("logoutAdminBtn")?.addEventListener("click", () => { isAdminLogged = false; buildAdminUI(); });
             renderAdminQueue();
         }
     }
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
 
-    // YouTube Player API
     function onYouTubeIframeAPIReady() {
-        console.log('YouTube API Ready');
         player = new YT.Player('youtube-player', {
-            height: '100%',
-            width: '100%',
-            videoId: '',
-            playerVars: {
-                autoplay: 1,
-                controls: 1,
-                rel: 0
-            },
+            height: '100%', width: '100%', videoId: '',
+            playerVars: { autoplay: 1, controls: 1, rel: 0 },
             events: {
-                onReady: (event) => {
-                    console.log('Player ready');
-                    isPlayerReady = true;
-                    if (playlist.length > 0) {
-                        syncPlayerWithCurrent();
-                    }
-                },
+                onReady: () => { isPlayerReady = true; if (playlist.length > 0) syncPlayerWithCurrent(); },
                 onStateChange: (event) => {
-                    if (event.data === YT.PlayerState.ENDED) {
-                        console.log('Video ended, playing next');
-                        nextSong();
-                    }
-                    const playPauseBtn = document.getElementById("playPauseBtn");
-                    if (playPauseBtn && player) {
-                        const isPlaying = (player.getPlayerState() === YT.PlayerState.PLAYING);
-                        playPauseBtn.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
-                    }
+                    if (event.data === YT.PlayerState.ENDED && socket?.connected && isAdminLogged) socket.emit('admin-next');
+                    const btn = document.getElementById("playPauseBtn");
+                    if (btn && player) btn.innerHTML = player.getPlayerState() === YT.PlayerState.PLAYING ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
                 },
-                onError: (error) => {
-                    console.error('YouTube player error:', error);
-                }
+                onError: () => { if (socket?.connected && isAdminLogged) setTimeout(() => socket.emit('admin-next'), 1000); }
             }
         });
     }
     window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 
-    // DOM ready initialization
-    document.addEventListener("DOMContentLoaded", async () => {
-        console.log('DOM ready, initializing...');
-        
-        // Load data dari localStorage
-        loadFromLocal();
-        
-        // Build UI admin
-        buildAdminUI();
-        
-        // Render queue
-        renderAllQueues();
-
-        // Setup event listeners
+    document.addEventListener("DOMContentLoaded", () => {
+        initSocket(); buildAdminUI(); renderAllQueues();
         document.getElementById("userAddBtn")?.addEventListener("click", async () => {
-            const link = document.getElementById("userYtLink").value;
-            if (link) {
-                await addSong(link, "user");
-                document.getElementById("userYtLink").value = '';
-            } else {
-                alert("Masukkan link YouTube terlebih dahulu");
-            }
+            const linkInput = document.getElementById("userYtLink");
+            if (linkInput?.value) { await addSong(linkInput.value, "user"); linkInput.value = ''; }
+            else alert("Masukkan link YouTube");
         });
-        
-        document.getElementById("playPauseBtn")?.addEventListener("click", () => {
-            if (player) {
-                if (player.getPlayerState() === YT.PlayerState.PLAYING) {
-                    player.pauseVideo();
-                } else {
-                    player.playVideo();
-                }
-            }
-        });
-        
-        document.getElementById("nextBtn")?.addEventListener("click", () => {
-            nextSong();
-        });
+        document.getElementById("playPauseBtn")?.addEventListener("click", () => { if (player) { if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo(); else player.playVideo(); } });
+        document.getElementById("nextBtn")?.addEventListener("click", () => nextSong());
     });
-
-    // Fallback if API not loaded
-    if (typeof YT === 'undefined') {
-        console.log('Loading YouTube API script');
-        const tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        document.head.appendChild(tag);
-    }
+    if (typeof YT === 'undefined') { const tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api"; document.head.appendChild(tag); }
 </script>
 </body>
 </html>
