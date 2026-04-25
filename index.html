@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -363,12 +362,16 @@
             0%, 100% { text-shadow: 0 0 5px rgba(139,92,246,0.5);}
             50% { text-shadow: 0 0 20px rgba(139,92,246,0.8);}
         }
-        .glow-text {
-            animation: glowPulse 2s infinite;
-        }
         hr {
             border-color: rgba(255,255,255,0.08);
             margin: 16px 0;
+        }
+        
+        /* Loading indicator */
+        .loading {
+            color: #94a3b8;
+            text-align: center;
+            padding: 20px;
         }
     </style>
 </head>
@@ -433,10 +436,11 @@
 
 <script>
     // ======================== GLOBAL STATE ========================
-    let playlist = [];           // { id, title, videoId, isBlacklisted, addedBy }
+    let playlist = [];           
     let currentIndex = 0;
     let player = null;
     let isAdminLogged = false;
+    let isPlayerReady = false;
 
     // Helper: Extract YouTube Video ID
     function extractVideoId(url) {
@@ -457,33 +461,51 @@
         }
     }
 
-    // Save to localStorage
+    // Save to localStorage dengan key yang konsisten
     function saveToLocal() {
         const data = {
-            playlist: playlist.map(({ id, title, videoId, isBlacklisted, addedBy }) => ({ id, title, videoId, isBlacklisted, addedBy })),
-            currentIndex
+            playlist: playlist.map(({ id, title, videoId, isBlacklisted, addedBy, currentTime }) => ({ 
+                id, title, videoId, isBlacklisted, addedBy 
+            })),
+            currentIndex: currentIndex,
+            lastUpdated: Date.now()
         };
-        localStorage.setItem('inca_music_db', JSON.stringify(data));
+        localStorage.setItem('alpha_music_db', JSON.stringify(data));
+        console.log('Data saved:', data.playlist.length, 'songs, index:', currentIndex);
     }
 
     function loadFromLocal() {
-        const raw = localStorage.getItem('inca_music_db');
+        const raw = localStorage.getItem('alpha_music_db');
+        console.log('Loading from localStorage:', raw ? 'found' : 'not found');
+        
         if (raw) {
             try {
                 const data = JSON.parse(raw);
-                playlist = data.playlist || [];
-                currentIndex = data.currentIndex || 0;
-            } catch(e) { resetDefaultSongs(); }
-        } else {
-            resetDefaultSongs();
+                if (data.playlist && Array.isArray(data.playlist) && data.playlist.length > 0) {
+                    playlist = data.playlist;
+                    currentIndex = data.currentIndex || 0;
+                    
+                    // Validasi index
+                    if (currentIndex >= playlist.length) {
+                        currentIndex = 0;
+                    }
+                    console.log('Data loaded:', playlist.length, 'songs, current index:', currentIndex);
+                    return true;
+                } else {
+                    console.log('Playlist kosong di localStorage');
+                }
+            } catch(e) {
+                console.error('Error parsing localStorage:', e);
+            }
         }
-        if (playlist.length === 0) resetDefaultSongs();
-        if (currentIndex >= playlist.length && playlist.length) currentIndex = 0;
-        renderAllQueues();
-        syncPlayerWithCurrent();
+        
+        // Jika tidak ada data atau error, load default
+        resetDefaultSongs();
+        return false;
     }
 
     function resetDefaultSongs() {
+        console.log('Setting default songs');
         playlist = [
             {
                 id: Date.now() + 1,
@@ -495,9 +517,9 @@
             {
                 id: Date.now() + 2,
                 title: "李聖傑 Sam Lee - 痴心絕對 (Official Audio)",
-                videoId: "dQw4w9WgXcQ",
+                videoId: "K_WOoQsf7sk",
                 isBlacklisted: false,
-                addedBy: "auto"
+                addedBy: "system"
             }
         ];
         currentIndex = 0;
@@ -511,6 +533,7 @@
             alert("❌ Link YouTube tidak valid!");
             return false;
         }
+        
         const existing = playlist.find(p => p.videoId === videoId);
         if (existing && existing.isBlacklisted) {
             alert("⛔ Lagu ini telah diblacklist oleh admin, tidak bisa ditambahkan.");
@@ -520,6 +543,7 @@
             alert("⚠️ Lagu sudah ada dalam antrean!");
             return false;
         }
+        
         const title = await fetchVideoTitle(videoId);
         const newSong = {
             id: Date.now(),
@@ -531,7 +555,10 @@
         playlist.push(newSong);
         saveToLocal();
         renderAllQueues();
-        if (playlist.length === 1 || (player && (!player.getVideoData || player.getVideoData().video_id === undefined))) {
+        
+        // Jika ini adalah satu-satunya lagu atau player kosong, putar
+        if (playlist.length === 1 || (player && (!player.getVideoData || !player.getVideoData().video_id))) {
+            if (playlist.length === 1) currentIndex = 0;
             syncPlayerWithCurrent();
         }
         return true;
@@ -540,8 +567,10 @@
     function removeSong(songId) {
         const idx = playlist.findIndex(s => s.id === songId);
         if (idx === -1) return;
+        
         const wasPlaying = (idx === currentIndex);
         playlist.splice(idx, 1);
+        
         if (playlist.length === 0) {
             currentIndex = 0;
             if (player) player.stopVideo();
@@ -575,21 +604,27 @@
         if (idx === -1) return;
         const newIdx = direction === 'up' ? idx - 1 : idx + 1;
         if (newIdx < 0 || newIdx >= playlist.length) return;
+        
         [playlist[idx], playlist[newIdx]] = [playlist[newIdx], playlist[idx]];
+        
         if (currentIndex === idx) currentIndex = newIdx;
         else if (currentIndex === newIdx) currentIndex = idx;
+        
         saveToLocal();
         renderAllQueues();
     }
 
     function nextSong() {
         if (playlist.length === 0) return;
+        
         let nextIdx = (currentIndex + 1) % playlist.length;
         let attempts = 0;
+        
         while (playlist[nextIdx] && playlist[nextIdx].isBlacklisted && attempts < playlist.length) {
             nextIdx = (nextIdx + 1) % playlist.length;
             attempts++;
         }
+        
         if (playlist[nextIdx] && !playlist[nextIdx].isBlacklisted) {
             currentIndex = nextIdx;
             playSongAtIndex(currentIndex);
@@ -602,12 +637,22 @@
     }
 
     function playSongAtIndex(index) {
-        if (!playlist[index] || playlist[index].isBlacklisted) {
+        if (!playlist[index]) {
+            if (playlist.length > 0) {
+                currentIndex = 0;
+                index = 0;
+            } else {
+                return;
+            }
+        }
+        
+        if (playlist[index].isBlacklisted) {
             nextSong();
             return;
         }
+        
         const song = playlist[index];
-        if (player && player.loadVideoById) {
+        if (player && player.loadVideoById && isPlayerReady) {
             player.loadVideoById(song.videoId);
             player.playVideo();
         }
@@ -621,16 +666,22 @@
     }
 
     function syncPlayerWithCurrent() {
-        if (playlist.length === 0) return;
+        if (playlist.length === 0) {
+            if (player) player.stopVideo();
+            return;
+        }
+        
         if (currentIndex >= playlist.length) currentIndex = 0;
         const song = playlist[currentIndex];
-        if (song && !song.isBlacklisted && player) {
+        
+        if (song && !song.isBlacklisted && player && isPlayerReady) {
             player.loadVideoById(song.videoId);
             player.playVideo();
             updateCurrentTitle(song.title);
         } else if (song && song.isBlacklisted) {
             nextSong();
         }
+        renderAllQueues();
     }
 
     function renderAllQueues() {
@@ -651,10 +702,12 @@
     function renderUserQueue() {
         const container = document.getElementById("userQueueList");
         if (!container) return;
+        
         if (playlist.length === 0) {
             container.innerHTML = `<div style="color:#94a3b8; text-align:center; padding: 32px;">✨ Antrean kosong, tambahkan lagu!</div>`;
             return;
         }
+        
         container.innerHTML = playlist.map((song, idx) => {
             const isActive = (idx === currentIndex);
             return `
@@ -664,7 +717,6 @@
                         <div class="queue-meta"><i class="fas fa-user"></i> ${song.addedBy || 'user'} • #${idx+1}</div>
                     </div>
                     <div class="admin-actions" style="display: flex; gap: 4px;">
-                        <!-- User hanya tampilan -->
                         ${!song.isBlacklisted ? `<button class="icon-btn" disabled style="opacity:0.4"><i class="fas fa-play-circle"></i></button>` : ''}
                     </div>
                 </div>
@@ -675,10 +727,12 @@
     function renderAdminQueue() {
         const container = document.getElementById("adminQueueList");
         if (!container) return;
+        
         if (playlist.length === 0) {
             container.innerHTML = `<div style="color:#aaa;padding:24px;text-align:center;">Kosong, tambah lagu</div>`;
             return;
         }
+        
         container.innerHTML = playlist.map((song, idx) => {
             const isActive = (idx === currentIndex);
             return `
@@ -688,11 +742,11 @@
                         <div class="queue-meta">${song.videoId}</div>
                     </div>
                     <div class="admin-actions" style="display: flex; gap: 6px;">
-                        <button class="icon-btn" onclick="adminMove(${song.id}, 'up')" title="Naik"><i class="fas fa-arrow-up"></i></button>
-                        <button class="icon-btn" onclick="adminMove(${song.id}, 'down')" title="Turun"><i class="fas fa-arrow-down"></i></button>
-                        <button class="icon-btn danger" onclick="adminRemove(${song.id})" title="Hapus"><i class="fas fa-trash"></i></button>
-                        <button class="icon-btn ${song.isBlacklisted ? '' : 'danger'}" onclick="adminBlacklist(${song.id})" title="Blacklist"><i class="fas ${song.isBlacklisted ? 'fa-ban' : 'fa-skull-crossbones'}"></i></button>
-                        <button class="icon-btn" onclick="adminPlayNow(${idx})" title="Mainkan sekarang"><i class="fas fa-forward-step"></i></button>
+                        <button class="icon-btn" onclick="window.adminMove(${song.id}, 'up')" title="Naik"><i class="fas fa-arrow-up"></i></button>
+                        <button class="icon-btn" onclick="window.adminMove(${song.id}, 'down')" title="Turun"><i class="fas fa-arrow-down"></i></button>
+                        <button class="icon-btn danger" onclick="window.adminRemove(${song.id})" title="Hapus"><i class="fas fa-trash"></i></button>
+                        <button class="icon-btn ${song.isBlacklisted ? '' : 'danger'}" onclick="window.adminBlacklist(${song.id})" title="Blacklist"><i class="fas ${song.isBlacklisted ? 'fa-ban' : 'fa-skull-crossbones'}"></i></button>
+                        <button class="icon-btn" onclick="window.adminPlayNow(${idx})" title="Mainkan sekarang"><i class="fas fa-forward-step"></i></button>
                     </div>
                 </div>
             `;
@@ -709,7 +763,9 @@
             playSongAtIndex(currentIndex);
             saveToLocal();
             renderAllQueues();
-        } else if(playlist[idx] && playlist[idx].isBlacklisted) alert("Lagu diblacklist, tidak bisa diputar");
+        } else if(playlist[idx] && playlist[idx].isBlacklisted) {
+            alert("Lagu diblacklist, tidak bisa diputar");
+        }
     };
     window.adminNextSong = () => { if (isAdminLogged) nextSong(); };
     window.adminAddSongViaInput = async () => {
@@ -718,12 +774,15 @@
         if (link) {
             await addSong(link, "admin");
             document.getElementById("adminYtLink").value = '';
-        } else alert("Masukkan link YouTube");
+        } else {
+            alert("Masukkan link YouTube");
+        }
     };
 
     function buildAdminUI() {
         const container = document.getElementById("adminDynamicContent");
         if (!container) return;
+        
         if (!isAdminLogged) {
             container.innerHTML = `
                 <div class="admin-login-area">
@@ -732,14 +791,14 @@
                     <p style="color:#94a3b8; margin-bottom: 16px;">Masukkan kode akses untuk kontrol penuh</p>
                     <input type="password" id="adminPasswordInput" placeholder="Password" autocomplete="off">
                     <button class="btn-primary" id="adminLoginBtn" style="width:100%;">Login →</button>
-                    <p style="font-size:0.7rem; margin-top: 16px; color:#6b7280;">demo: <strong>ALPHA TEAM</strong></p>
+                    <p style="font-size:0.7rem; margin-top: 16px; color:#6b7280;">demo: <strong>anakbandot</strong></p>
                 </div>
             `;
             const loginBtn = document.getElementById("adminLoginBtn");
             if (loginBtn) {
                 loginBtn.onclick = () => {
                     const pass = document.getElementById("adminPasswordInput").value;
-                    if (pass === "fengshui") {
+                    if (pass === "anakbandot") {
                         isAdminLogged = true;
                         buildAdminUI();
                         renderAdminQueue();
@@ -777,6 +836,7 @@
     }
 
     function escapeHtml(str) {
+        if (!str) return '';
         return str.replace(/[&<>]/g, function(m) {
             if (m === '&') return '&amp;';
             if (m === '<') return '&lt;';
@@ -787,16 +847,27 @@
 
     // YouTube Player API
     function onYouTubeIframeAPIReady() {
+        console.log('YouTube API Ready');
         player = new YT.Player('youtube-player', {
             height: '100%',
             width: '100%',
             videoId: '',
+            playerVars: {
+                autoplay: 1,
+                controls: 1,
+                rel: 0
+            },
             events: {
-                onReady: () => {
-                    if (playlist.length) syncPlayerWithCurrent();
+                onReady: (event) => {
+                    console.log('Player ready');
+                    isPlayerReady = true;
+                    if (playlist.length > 0) {
+                        syncPlayerWithCurrent();
+                    }
                 },
                 onStateChange: (event) => {
                     if (event.data === YT.PlayerState.ENDED) {
+                        console.log('Video ended, playing next');
                         nextSong();
                     }
                     const playPauseBtn = document.getElementById("playPauseBtn");
@@ -804,6 +875,9 @@
                         const isPlaying = (player.getPlayerState() === YT.PlayerState.PLAYING);
                         playPauseBtn.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
                     }
+                },
+                onError: (error) => {
+                    console.error('YouTube player error:', error);
                 }
             }
         });
@@ -811,26 +885,47 @@
     window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 
     // DOM ready initialization
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
+        console.log('DOM ready, initializing...');
+        
+        // Load data dari localStorage
         loadFromLocal();
+        
+        // Build UI admin
         buildAdminUI();
+        
+        // Render queue
+        renderAllQueues();
 
+        // Setup event listeners
         document.getElementById("userAddBtn")?.addEventListener("click", async () => {
             const link = document.getElementById("userYtLink").value;
-            if (link) await addSong(link, "user");
-            else alert("Masukkan link YouTube terlebih dahulu");
-        });
-        document.getElementById("playPauseBtn")?.addEventListener("click", () => {
-            if (player) {
-                if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
-                else player.playVideo();
+            if (link) {
+                await addSong(link, "user");
+                document.getElementById("userYtLink").value = '';
+            } else {
+                alert("Masukkan link YouTube terlebih dahulu");
             }
         });
-        document.getElementById("nextBtn")?.addEventListener("click", () => nextSong());
+        
+        document.getElementById("playPauseBtn")?.addEventListener("click", () => {
+            if (player) {
+                if (player.getPlayerState() === YT.PlayerState.PLAYING) {
+                    player.pauseVideo();
+                } else {
+                    player.playVideo();
+                }
+            }
+        });
+        
+        document.getElementById("nextBtn")?.addEventListener("click", () => {
+            nextSong();
+        });
     });
 
     // Fallback if API not loaded
     if (typeof YT === 'undefined') {
+        console.log('Loading YouTube API script');
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         document.head.appendChild(tag);
